@@ -1,6 +1,6 @@
 ---
 
-- name: Run interface status
+- name: Run Cisco Nexus interface status
   cisco.nxos.nxos_command:
     commands:
       - show interface status
