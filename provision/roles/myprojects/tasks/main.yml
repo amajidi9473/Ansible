@@ -13,3 +13,56 @@
     var: show_int_status.stdout_lines
   tags:
     - test
+##########################Interfaces general commands##########################
+- name: interface description and shut/no shut
+  cisco.nxos.nxos_interfaces:
+    config:
+      - name: Ethernet1/10
+        description: by Ansible
+        enabled: true  #administrative state of the interface (shut/no shut)
+        mtu: 9216
+        speed: 1000
+        mode: layer2
+        #mode: layer3  #no switchport
+    state: merged  #default ansible state- means keep the existing configs and add this task to them
+                    #replaced => only overrides the interface we mention
+                    #overridden => Dangerous - overrides the mentioned interface and deletes all other interfaces
+                    #gathered => just retrieve the config and do not do anything
+                    #rendered => nothing sent to the switch- just check the playbook
+  tags:
+    - interface
+
+- name: Delete or return interface parameters to default settings
+  cisco.nxos.nxos_interfaces:
+    config:
+      - name: Ethernet1/10
+    state: deleted  #means make the interface default
+  tags:
+    - default
+
+- name: Gather interface configuration
+  cisco.nxos.nxos_interfaces:
+    state: gathered
+  register: interface_result  #save the module result
+  tags:
+    - retrieve
+
+- name: Display gathered interface configuration
+  ansible.builtin.debug:
+    var: interface_result.gathered
+  tags:
+    - retrieve
+
+##########################Interfaces L2 commands##########################
+- name: Merge provided configuration with device configuration
+  cisco.nxos.nxos_l2_interfaces:
+    config:
+      - name: Ethernet1/10
+        trunk:
+          allowed_vlans: 30  #if state: merged => will add vlan to existing allowed - if state:replaced => replace vlans
+      - name: Ethernet1/11
+        access:
+          vlan: 30
+    state: merged
+  tags:
+    - switchport
