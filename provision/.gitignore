@@ -1,0 +1,7 @@
+# Local Ansible Vault password files must never be committed.
+.vault_pass
+.vault_password
+
+# Host inventory and encrypted device credentials remain local.
+/inventory/myhost
+/group_vars/devices/vault.yml
