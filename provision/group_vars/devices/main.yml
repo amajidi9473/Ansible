@@ -1,0 +1,3 @@
+---
+# The encrypted value is defined in vault.yml in this directory.
+ansible_password: "{{ vault_ansible_password }}"

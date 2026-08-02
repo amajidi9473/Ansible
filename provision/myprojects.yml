@@ -1,0 +1,7 @@
+---
+- name: Test Cisco Nexus devices
+  hosts: devices
+  gather_facts: false
+
+  roles:
+    - myprojects

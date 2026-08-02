@@ -1,0 +1,15 @@
+---
+
+- name: Run show version
+  cisco.nxos.nxos_command:
+    commands:
+      - show interface status
+  register: show_int_status
+  tags:
+    - test
+
+- name: Display interfaces status output
+  ansible.builtin.debug:
+    var: show_int_status.stdout_lines
+  tags:
+    - test
