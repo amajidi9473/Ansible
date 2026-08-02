@@ -13,17 +13,17 @@
     var: show_int_status.stdout_lines
   tags:
     - test
-##########################Interfaces general commands##########################
+########################## Interfaces general commands ##########################
 - name: interface description and shut/no shut
   cisco.nxos.nxos_interfaces:
     config:
-      - name: Ethernet1/10
+      - name: Ethernet1/11
         description: by Ansible
         enabled: true  #administrative state of the interface (shut/no shut)
         mtu: 9216
         speed: 1000
-        mode: layer2
-        #mode: layer3  #no switchport
+        #mode: layer2
+        mode: layer3  #no switchport
     state: merged  #default ansible state- means keep the existing configs and add this task to them
                     #replaced => only overrides the interface we mention
                     #overridden => Dangerous - overrides the mentioned interface and deletes all other interfaces
@@ -53,16 +53,41 @@
   tags:
     - retrieve
 
-##########################Interfaces L2 commands##########################
+########################## Interfaces L2 commands ##########################
 - name: Merge provided configuration with device configuration
   cisco.nxos.nxos_l2_interfaces:
     config:
       - name: Ethernet1/10
         trunk:
-          allowed_vlans: 30  #if state: merged => will add vlan to existing allowed - if state:replaced => replace vlans
+          allowed_vlans: 30  #if state: merged => will "add" vlan to existing allowed - if state:replaced => replace vlans
       - name: Ethernet1/11
         access:
           vlan: 30
     state: merged
   tags:
     - switchport
+
+########################## Interfaces L3 commands ##########################
+- name: Assign IPv4 address
+  cisco.nxos.nxos_l3_interfaces:
+    config:
+      - name: Ethernet1/10
+        ipv4:
+          - address: 192.168.200.10/24
+    state: merged
+  tags:
+    - ipv4
+
+- name: Assign different IPv4 address per vPC-switch
+  cisco.nxos.nxos_l3_interfaces:
+    config:
+      - name: Ethernet1/11
+        ipv4:
+          - address: "{{ interface_addresses[inventory_hostname] }}"
+    state: merged
+  vars:
+    interface_addresses:
+      sw5: 192.168.211.20/24
+      sw6: 192.168.211.21/24
+  tags:
+    - ipv4-eth11
