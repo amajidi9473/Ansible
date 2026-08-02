@@ -1,6 +1,6 @@
 ---
 
-- name: Run show version
+- name: Run interface status
   cisco.nxos.nxos_command:
     commands:
       - show interface status
