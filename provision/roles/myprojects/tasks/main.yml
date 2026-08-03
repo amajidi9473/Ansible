@@ -91,3 +91,41 @@
       sw6: 192.168.211.21/24
   tags:
     - ipv4-eth11
+
+########################## VLAN commands ##########################
+- name: Configure VLAN on the switch
+  cisco.nxos.nxos_vlans:
+    config:
+      - vlan_id: 31
+        name: ansible-vlan31
+        enabled: true
+        mode: ce          #default - classical ethernet - "fabricpath" is another option
+        state: active     #default - "suspend" is another option
+        #mapped_vni: 100  # (VNI) ID that is mapped to the VLAN
+    state: merged         # deleted to delete the vlan
+  tags:
+    - vlan
+
+- name: Delete vlans
+  cisco.nxos.nxos_vlans:
+    config:
+      - vlan_id: 31
+      #- vlan_id: 30
+    state: deleted
+  tags:
+    - delete-vlan
+#
+- name: Gather vlans facts from the device using nxos_vlans
+  cisco.nxos.nxos_vlans:
+    state: gathered
+  register: vlans
+  tags:
+    - gather-vlan
+
+- name: Display gathered vlans
+  ansible.builtin.debug:
+    var: vlans.gathered
+  tags:
+    - gather-vlan
+
+
