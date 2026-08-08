@@ -1,0 +1,10 @@
+---
+- name: Run dynamic VLAN tasks
+  hosts: devices
+  gather_facts: false
+
+  tasks:
+    - name: Run dynamic VLAN role tasks
+      ansible.builtin.import_role:
+        name: myprojects
+        tasks_from: practice.yml

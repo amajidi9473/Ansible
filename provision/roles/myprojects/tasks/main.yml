@@ -67,6 +67,19 @@
   tags:
     - switchport
 
+- name: Gather l2_interfaces facts from the device using nxos_l2_interfaces
+  cisco.nxos.nxos_l2_interfaces:
+    state: gathered
+  register: interfaces
+  tags:
+    - gather-interfaces
+
+- name: Display gathered interfaces
+  ansible.builtin.debug:
+    var: interfaces.gathered
+  tags:
+    - gather-interfaces
+
 ########################## Interfaces L3 commands ##########################
 - name: Assign IPv4 address
   cisco.nxos.nxos_l3_interfaces:
@@ -127,5 +140,3 @@
     var: vlans.gathered
   tags:
     - gather-vlan
-
-
