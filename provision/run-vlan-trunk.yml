@@ -7,4 +7,4 @@
     - name: Run dynamic VLAN role tasks
       ansible.builtin.import_role:
         name: myprojects
-        tasks_from: practice.yml
+        tasks_from: vlan-trunk.yml
