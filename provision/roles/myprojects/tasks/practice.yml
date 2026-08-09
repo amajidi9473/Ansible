@@ -2,8 +2,34 @@
 
 - name: Define dynamic VLAN settings
   ansible.builtin.set_fact:
-    trunk_interface: Ethernet1/10
     vlan_count: 3
+    trunk_interfaces_by_host:
+      sw5:
+        - Ethernet1/10
+        - Ethernet1/11
+        - port-channel700
+      sw6:
+        - Ethernet1/10
+        - Ethernet1/12
+        - Ethernet1/13
+        - port-channel700
+  tags:
+    - dynamic-vlan
+
+- name: Select trunk interfaces for this device
+  ansible.builtin.set_fact:
+    trunk_interfaces: >-
+      {{ trunk_interfaces_by_host[inventory_hostname] | default([]) }}
+  tags:
+    - dynamic-vlan
+
+- name: Validate that this device has target trunk interfaces
+  ansible.builtin.assert:
+    that:
+      - trunk_interfaces | length > 0
+    fail_msg: >-
+      Add at least one interface for {{ inventory_hostname }} under
+      trunk_interfaces_by_host at the beginning of this file.
   tags:
     - dynamic-vlan
 
@@ -30,14 +56,8 @@
          | list }}
     matching_trunks: >-
       {{ l2_state.gathered
-         | selectattr('name', 'equalto', trunk_interface)
+         | selectattr('name', 'in', trunk_interfaces)
          | list }}
-  tags:
-    - dynamic-vlan
-
-- name: Select the requested trunk interface
-  ansible.builtin.set_fact:
-    trunk_state: "{{ (matching_trunks | first) | default({}) }}"
   tags:
     - dynamic-vlan
 
@@ -45,13 +65,25 @@
   ansible.builtin.assert:
     that:
       - existing_vlan_ids | length > 0
-      - matching_trunks | length == 1
-      - trunk_state.trunk is defined
-      - not (trunk_state.trunk.allowed_vlans_none | default(false) | bool)
+      - matching_trunks | length == trunk_interfaces | length
     fail_msg: >-
-      The device must have VLAN data and exactly one matching trunk named
-      {{ trunk_interface }}. A trunk explicitly configured with
-      "allowed vlan none" will not be modified.
+      The device must have VLAN data, and every configured target interface
+      must exist. Requested: {{ trunk_interfaces | join(', ') }}. Found:
+      {{ matching_trunks | map(attribute='name') | join(', ') }}.
+  tags:
+    - dynamic-vlan
+
+- name: Validate every selected interface is a usable trunk
+  ansible.builtin.assert:
+    that:
+      - item.trunk is defined
+      - not (item.trunk.allowed_vlans_none | default(false) | bool)
+    fail_msg: >-
+      {{ item.name }} must be a trunk and must not be configured with
+      "allowed vlan none".
+  loop: "{{ matching_trunks }}"
+  loop_control:
+    label: "{{ item.name }}"
   tags:
     - dynamic-vlan
 
@@ -89,8 +121,6 @@
            largest_vlan_id | int + 1,
            largest_vlan_id | int + vlan_count | int + 1
          ) | list }}
-    existing_allowed_vlans: >-
-      {{ trunk_state.trunk.allowed_vlans | default('') | string }}
   tags:
     - dynamic-vlan
 
@@ -99,11 +129,9 @@
     msg:
       - "Largest VLAN across targeted devices: {{ largest_vlan_id }}"
       - "VLANs to create: {{ new_vlan_ids | join(',') }}"
-      - "Target trunk: {{ trunk_interface }}"
       - >-
-        Trunk action: {{ 'merge the new VLANs into ' + existing_allowed_vlans
-        if existing_allowed_vlans | length > 0
-        else 'none; the trunk already allows all VLANs by default' }}
+        Target trunks on {{ inventory_hostname }}:
+        {{ trunk_interfaces | join(', ') }}
   tags:
     - dynamic-vlan
 
@@ -122,19 +150,25 @@
 - name: Merge new VLANs into the explicit trunk allowed list
   cisco.nxos.nxos_l2_interfaces:
     config:
-      - name: "{{ trunk_interface }}"
+      - name: "{{ item.name }}"
         trunk:
           allowed_vlans: "{{ new_vlan_ids | join(',') }}"
     state: merged
-  when: existing_allowed_vlans | length > 0
+  loop: "{{ matching_trunks }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.trunk.allowed_vlans | default('') | string | length > 0
   tags:
     - dynamic-vlan
 
 - name: Report when no trunk update is required
   ansible.builtin.debug:
     msg: >-
-      {{ trunk_interface }} has no explicit allowed VLAN list, so NX-OS already
+      {{ item.name }} has no explicit allowed VLAN list, so NX-OS already
       allows the newly created VLANs and no trunk change was sent.
-  when: existing_allowed_vlans | length == 0
+  loop: "{{ matching_trunks }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: item.trunk.allowed_vlans | default('') | string | length == 0
   tags:
     - dynamic-vlan
