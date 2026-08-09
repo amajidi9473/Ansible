@@ -1,0 +1,10 @@
+---
+- name: Run dynamic ACL tasks
+  hosts: devices
+  gather_facts: false
+
+  tasks:
+    - name: Run dynamic ACL role tasks
+      ansible.builtin.import_role:
+        name: myprojects
+        tasks_from: acl.yml

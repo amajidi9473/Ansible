@@ -140,3 +140,17 @@
     var: vlans.gathered
   tags:
     - gather-vlan
+
+########################## ACL commands ##########################
+- name: Gather existing ACL configuration
+  cisco.nxos.nxos_acls:
+    state: gathered
+  register: acls
+  tags:
+    - gather-acl
+
+- name: Display gathered ACLs
+  ansible.builtin.debug:
+    var: acls.gathered
+  tags:
+    - gather-acl
